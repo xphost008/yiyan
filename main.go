@@ -51,17 +51,13 @@ type YiyanResult struct {
 	IsLiked     bool   `json:"is_liked"`
 }
 
-func getYiyanMost() *YiyanResult {
-	var yiyanId int
-	gdb.Table("like_record").
-		Select("yiyan_id").
-		Group("yiyan_id").
-		Order("COUNT(*) DESC").
-		Limit(1).
-		Pluck("yiyan_id", &yiyanId)
-	var yiyanResult *YiyanResult
-	gdb.Table("yiyan").Where("id = ?", yiyanId).First(&yiyanResult)
-	return yiyanResult
+func isValidUserId(userId string) bool {
+	if userId == "" {
+		return false
+	}
+	var id = ""
+	gdb.Table("users").Where("id = ?", userId).Pluck("id", &id)
+	return id != ""
 }
 func getYiyanLike(yiyanId int) int {
 	var likes int64
@@ -97,6 +93,21 @@ func getRandomOne(c *gin.Context) {
 	yiyanResult.Likes = getYiyanLike(yiyanResult.Id)
 	c.JSON(200, yiyanResult)
 }
+func getYiyanMost() *YiyanResult {
+	var yiyanId int
+	gdb.Table("like_record").
+		Select("yiyan_id").
+		Group("yiyan_id").
+		Order("COUNT(*) DESC").
+		Limit(1).
+		Pluck("yiyan_id", &yiyanId)
+	if yiyanId == 0 {
+		yiyanId = 1
+	}
+	var yiyanResult *YiyanResult
+	gdb.Table("yiyan").Where("id = ?", yiyanId).First(&yiyanResult)
+	return yiyanResult
+}
 func getMost(c *gin.Context) {
 	stuId, errId := c.Cookie("id")
 	if errId != nil {
@@ -124,7 +135,7 @@ func getMy(c *gin.Context) {
 	stuId, errId := c.Cookie("id")
 	_, errUsername := c.Cookie("username")
 	_, errPassword := c.Cookie("password")
-	if errId != nil || errUsername != nil || errPassword != nil {
+	if errId != nil || errUsername != nil || errPassword != nil || !isValidUserId(stuId) {
 		c.SetCookie("id", "", -1, "/", "", false, true)
 		c.SetCookie("username", "", -1, "/", "", false, true)
 		c.SetCookie("password", "", -1, "/", "", false, true)
@@ -143,7 +154,7 @@ func like(c *gin.Context) {
 	stuId, errId := c.Cookie("id")
 	_, errUsername := c.Cookie("username")
 	_, errPassword := c.Cookie("password")
-	if errId != nil || errUsername != nil || errPassword != nil {
+	if errId != nil || errUsername != nil || errPassword != nil || !isValidUserId(stuId) {
 		c.SetCookie("id", "", -1, "/", "", false, true)
 		c.SetCookie("username", "", -1, "/", "", false, true)
 		c.SetCookie("password", "", -1, "/", "", false, true)
@@ -170,7 +181,7 @@ func submit(c *gin.Context) {
 	stuId, errId := c.Cookie("id")
 	_, errUsername := c.Cookie("username")
 	_, errPassword := c.Cookie("password")
-	if errId != nil || errUsername != nil || errPassword != nil {
+	if errId != nil || errUsername != nil || errPassword != nil || !isValidUserId(stuId) {
 		c.SetCookie("id", "", -1, "/", "", false, true)
 		c.SetCookie("username", "", -1, "/", "", false, true)
 		c.SetCookie("password", "", -1, "/", "", false, true)
@@ -205,10 +216,10 @@ func login(c *gin.Context) {
 	stuIdC, errId := c.Cookie("id")
 	usernameC, errUsername := c.Cookie("username")
 	_, errPassword := c.Cookie("password")
-	if errId != nil || errUsername != nil || errPassword != nil {
+	if errId != nil || errUsername != nil || errPassword != nil || !isValidUserId(stuId) {
 		var user User
 		gdb.Where("id = ? AND password = ?", stuId, password).First(&user)
-		if user.Username == "" || user.Password == "" || user.Id == "" {
+		if user.Username == "" || user.Password == "" || user.Id == "" || !isValidUserId(user.Id) {
 			c.Redirect(302, "/login")
 			return
 		}
@@ -259,10 +270,10 @@ func main() {
 		c.HTML(200, "list.html", nil)
 	})
 	g.GET("/submit", func(c *gin.Context) {
-		_, errStuId := c.Cookie("id")
+		stuId, errStuId := c.Cookie("id")
 		_, errUsername := c.Cookie("username")
 		_, errPassword := c.Cookie("password")
-		if errStuId != nil || errUsername != nil || errPassword != nil {
+		if errStuId != nil || errUsername != nil || errPassword != nil || !isValidUserId(stuId) {
 			c.SetCookie("id", "", -1, "/", "", false, true)
 			c.SetCookie("username", "", -1, "/", "", false, true)
 			c.SetCookie("password", "", -1, "/", "", false, true)
@@ -272,10 +283,10 @@ func main() {
 		}
 	})
 	g.GET("/my", func(c *gin.Context) {
-		_, errStuId := c.Cookie("id")
+		stuId, errStuId := c.Cookie("id")
 		_, errUsername := c.Cookie("username")
 		_, errPassword := c.Cookie("password")
-		if errStuId != nil || errUsername != nil || errPassword != nil {
+		if errStuId != nil || errUsername != nil || errPassword != nil || !isValidUserId(stuId) {
 			c.SetCookie("id", "", -1, "/", "", false, true)
 			c.SetCookie("username", "", -1, "/", "", false, true)
 			c.SetCookie("password", "", -1, "/", "", false, true)

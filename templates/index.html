@@ -120,7 +120,7 @@
         <div id="content">
             <h1 class="tt">最佳一言</h1>
             <div id="hit-most">
-                <h1 id="hit-most-title" class="font-songti">{{most_sp.content}}</h1>
+                <h1 id="hit-most-title" class="font-songti">{{most_sp.content == '' ? '目前暂时没有一言提交噢！请去提交一言吧！' : most_sp.content}}</h1>
                 <div style="font-size: 20px; font-weight: bold">
                     <p id="hit-most-info">ID: {{most_sp.id}} | 分类：{{choose(most_sp.classifiers)}} | 来源：{{most_sp.source}} |
                         作者：{{most_sp.author}}</p>
@@ -132,7 +132,7 @@
             <h1 class="tt">随机一言</h1>
             <transition name="ope" @after-leave="leave">
                 <div id="hit" v-if="isTransitioning">
-                    <h1 id="hit-title" class="font-songti">{{rand_sp.content}}</h1>
+                    <h1 id="hit-title" class="font-songti">{{rand_sp.content == '' ? '目前暂时没有一言提交噢！请去提交一言吧！' : rand_sp.content}}</h1>
                     <div style="font-size: 20px; font-weight: bold">
                         <p id="hit-info">ID: {{rand_sp.id}} | 分类：{{choose(rand_sp.classifiers)}} | 来源：{{rand_sp.source}} |
                             作者：{{rand_sp.author}}</p>
