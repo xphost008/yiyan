@@ -16,7 +16,7 @@ CREATE DATABASE IF NOT EXISTS yiyandata CHARACTER SET utf8mb4 COLLATE utf8mb4_ge
 ```
 
 3. 创建好数据库后，使用`use yiyandata`进入到数据库内。
-4. 紧接着，再创建3个表。创建4个表的代码如下：
+4. 紧接着，再创建3个表。创建3个表的代码如下：
 
 ```sql
 create table yiyan
@@ -27,8 +27,7 @@ create table yiyan
     content     varchar(255)                                                                                                         not null comment '名言',
     source      varchar(255)                                                                                                         not null comment '来源',
     author      varchar(255)                                                                                                         not null comment '作者',
-    classifiers enum ('anime', 'comic', 'game', 'literature', 'myself', 'internet', 'other', 'video', 'poem', 'philosophy', 'funny') not null comment '分类',
-    likes       int                                                                                                                  not null comment '点赞量'
+    classifiers enum ('anime', 'comic', 'game', 'literature', 'myself', 'internet', 'other', 'video', 'poem', 'philosophy', 'funny') not null comment '分类'
 )
     comment '名人名言';
 create table users

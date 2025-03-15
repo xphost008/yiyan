@@ -8,7 +8,7 @@ import (
 )
 
 const mysqlUsername = "root"
-const mysqlPassword = "******"
+const mysqlPassword = "66543986"
 const mysqlDatabase = "yiyandata"
 const IP = "127.0.0.1"
 
@@ -24,7 +24,6 @@ type Yiyan struct {
 	Source      string `json:"source"`
 	Author      string `json:"author"`
 	Classifiers string `json:"classifiers"`
-	Likes       int    `json:"likes"`
 }
 type LikeRecord struct {
 	YiyanId int    `json:"yiyan_id"`
@@ -52,6 +51,23 @@ type YiyanResult struct {
 	IsLiked     bool   `json:"is_liked"`
 }
 
+func getYiyanMost() *YiyanResult {
+	var yiyanId int
+	gdb.Table("like_record").
+		Select("yiyan_id").
+		Group("yiyan_id").
+		Order("COUNT(*) DESC").
+		Limit(1).
+		Pluck("yiyan_id", &yiyanId)
+	var yiyanResult *YiyanResult
+	gdb.Table("yiyan").Where("id = ?", yiyanId).First(&yiyanResult)
+	return yiyanResult
+}
+func getYiyanLike(yiyanId int) int {
+	var likes int64
+	gdb.Table("like_record").Where("yiyan_id = ?", yiyanId).Count(&likes)
+	return int(likes)
+}
 func isMyYiyanToLike(yiyanId int, userId string) bool {
 	var submitter string
 	gdb.Table("yiyan").Select("submitter").Where("id = ?", yiyanId).Pluck("submitter", &submitter)
@@ -78,6 +94,7 @@ func getRandomOne(c *gin.Context) {
 	var yiyanResult *YiyanResult
 	gdb.Table("yiyan").Order("RAND()").First(&yiyanResult)
 	yiyanResult.IsLiked = getIsLike(yiyanResult.Id, stuId)
+	yiyanResult.Likes = getYiyanLike(yiyanResult.Id)
 	c.JSON(200, yiyanResult)
 }
 func getMost(c *gin.Context) {
@@ -85,9 +102,9 @@ func getMost(c *gin.Context) {
 	if errId == nil {
 		stuId = ""
 	}
-	var yiyanGet *YiyanResult
-	gdb.Table("yiyan").Order("likes DESC").First(&yiyanGet)
+	yiyanGet := getYiyanMost()
 	yiyanGet.IsLiked = getIsLike(yiyanGet.Id, stuId)
+	yiyanGet.Likes = getYiyanLike(yiyanGet.Id)
 	c.JSON(200, yiyanGet)
 }
 func getAll(c *gin.Context) {
@@ -99,6 +116,7 @@ func getAll(c *gin.Context) {
 	gdb.Table("yiyan").Find(&yiyanAll)
 	for _, yiyan := range yiyanAll {
 		yiyan.IsLiked = getIsLike(yiyan.Id, stuId)
+		yiyan.Likes = getYiyanLike(yiyan.Id)
 	}
 	c.JSON(200, yiyanAll)
 }
@@ -117,6 +135,7 @@ func getMy(c *gin.Context) {
 	gdb.Table("yiyan").Where("submitter = ?", stuId).Find(&result)
 	for _, resultItem := range result {
 		resultItem.IsLiked = getIsLike(resultItem.Id, stuId)
+		resultItem.Likes = getYiyanLike(resultItem.Id)
 	}
 	c.JSON(200, result)
 }
@@ -138,14 +157,12 @@ func like(c *gin.Context) {
 	}
 	if lk["is_liked"].(bool) {
 		gdb.Table("like_record").Unscoped().Where("user_id = ? AND yiyan_id = ?", stuId, int(lk["id"].(float64))).Delete(nil)
-		gdb.Table("yiyan").Where("id = ?", int(lk["id"].(float64))).Update("likes", gorm.Expr("likes - 1"))
 	} else {
 		if isMyYiyanToLike(int(lk["id"].(float64)), stuId) {
 			c.String(200, "my")
 			return
 		}
 		gdb.Table("like_record").Create(&LikeRecord{YiyanId: int(lk["id"].(float64)), UserId: stuId})
-		gdb.Table("yiyan").Where("id = ?", int(lk["id"].(float64))).Update("likes", gorm.Expr("likes + 1"))
 	}
 	c.String(200, "ok")
 }
@@ -164,6 +181,7 @@ func submit(c *gin.Context) {
 	source := c.PostForm("source")
 	author := c.PostForm("author")
 	classifiers := c.PostForm("classifiers")
+	fmt.Println(content, source, author, classifiers)
 	if content == "" || source == "" || author == "" || classifiers == "" {
 		c.Redirect(302, "/submit")
 		return
@@ -174,7 +192,6 @@ func submit(c *gin.Context) {
 		Author:      author,
 		Classifiers: classifiers,
 		Submitter:   stuId,
-		Likes:       0,
 	})
 	if gdb.Error != nil {
 		c.Redirect(302, "/submit")
@@ -199,12 +216,23 @@ func login(c *gin.Context) {
 		c.SetCookie("username", user.Username, 21600, "/", "", false, true)
 		c.SetCookie("password", user.Password, 21600, "/", "", false, true)
 		c.Redirect(302, "/")
+	} else if stuId == stuIdC {
+		gdb.Table("users").Where("id = ? AND username = ?", stuIdC, usernameC).Update("password", password)
+		c.SetCookie("id", stuIdC, 21600, "/", "", false, true)
+		c.SetCookie("username", usernameC, 21600, "/", "", false, true)
+		c.SetCookie("password", password, 21600, "/", "", false, true)
+		c.Redirect(302, "/")
 	} else {
-		if stuId == stuIdC {
-			gdb.Where("id = ? AND username = ?", stuIdC, usernameC).Update("password", password)
-		} else {
+		var user User
+		gdb.Where("id = ? AND password = ?", stuId, password).First(&user)
+		if user.Username == "" || user.Password == "" || user.Id == "" {
 			c.Redirect(302, "/login")
+			return
 		}
+		c.SetCookie("id", user.Id, 21600, "/", "", false, true)
+		c.SetCookie("username", user.Username, 21600, "/", "", false, true)
+		c.SetCookie("password", user.Password, 21600, "/", "", false, true)
+		c.Redirect(302, "/")
 	}
 }
 
