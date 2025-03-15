@@ -99,7 +99,7 @@ func getRandomOne(c *gin.Context) {
 }
 func getMost(c *gin.Context) {
 	stuId, errId := c.Cookie("id")
-	if errId == nil {
+	if errId != nil {
 		stuId = ""
 	}
 	yiyanGet := getYiyanMost()
