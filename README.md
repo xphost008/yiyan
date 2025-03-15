@@ -27,7 +27,7 @@ create table yiyan
     content     varchar(255)                                                                                                         not null comment '名言',
     source      varchar(255)                                                                                                         not null comment '来源',
     author      varchar(255)                                                                                                         not null comment '作者',
-    classifiers enum ('anime', 'comic', 'game', 'literature', 'myself', 'internet', 'other', 'video', 'poem', 'philosophy', 'funny') not null comment '分类'
+    classifiers enum ('anime', 'comic', 'game', 'literature', 'myself', 'internet', 'other', 'video', 'poem', 'ncm', 'philosophy', 'funny') not null comment '分类'
 )
     comment '名人名言';
 create table users
