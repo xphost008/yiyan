@@ -7,110 +7,293 @@ import (
 	"gorm.io/gorm"
 )
 
-// 数据库连接配置
-const (
-	mysqlUsername = "root"
-	mysqlPassword = "******"
-	mysqlDatabase = "yiyandata"
-	IP            = "127.0.0.1"
-)
+const mysqlUsername = "root"
+const mysqlPassword = "66543986"
+const mysqlDatabase = "yiyandata"
+const IP = "127.0.0.1"
 
-// 用户模型
 type User struct {
-	Id       string `json:"id"`       // 用户ID
-	Username string `json:"username"` // 用户名
-	Password string `json:"password"` // 密码
+	Id       string `json:"id"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
-
-// 一言模型
 type Yiyan struct {
-	Id          int    `json:"id"`          // 一言ID
-	Content     string `json:"content"`     // 内容
-	Submitter   string `json:"submitter"`   // 提交者ID
-	Source      string `json:"source"`      // 来源
-	Author      string `json:"author"`      // 作者
-	Classifiers string `json:"classifiers"` // 分类
-	Likes       int    `json:"likes"`       // 点赞数
+	Id          int    `json:"id"`
+	Content     string `json:"content"`
+	Submitter   string `json:"submitter"`
+	Source      string `json:"source"`
+	Author      string `json:"author"`
+	Classifiers string `json:"classifiers"`
 }
-
-// 点赞记录模型
 type LikeRecord struct {
-	YiyanId int    `json:"yiyan_id"` // 一言ID
-	UserId  string `json:"user_id"`  // 用户ID
+	YiyanId int    `json:"yiyan_id"`
+	UserId  string `json:"user_id"`
 }
 
-// 指定表名
-func (LikeRecord) TableName() string {
+func (likeRecord LikeRecord) TableName() string {
 	return "like_record"
 }
-
-func (Yiyan) TableName() string {
+func (yiyan Yiyan) TableName() string {
 	return "yiyan"
 }
-
-func (User) TableName() string {
+func (user User) TableName() string {
 	return "users"
 }
 
-// 一言结果模型（包含是否点赞字段）
 type YiyanResult struct {
-	Id          int    `json:"id"`          // 一言ID
-	Content     string `json:"content"`     // 内容
-	Submitter   string `json:"submitter"`   // 提交者ID
-	Source      string `json:"source"`      // 来源
-	Author      string `json:"author"`      // 作者
-	Classifiers string `json:"classifiers"` // 分类
-	Likes       int    `json:"likes"`       // 点赞数
-	IsLiked     bool   `json:"is_liked"`    // 是否已点赞
+	Id          int    `json:"id"`
+	Content     string `json:"content"`
+	Submitter   string `json:"submitter"`
+	Source      string `json:"source"`
+	Author      string `json:"author"`
+	Classifiers string `json:"classifiers"`
+	Likes       int    `json:"likes"`
+	IsLiked     bool   `json:"is_liked"`
 }
 
-var gdb *gorm.DB
-
-// 中间件：检查登录状态
-func checkLogin(c *gin.Context) {
+func isValidUserId(userId string) bool {
+	if userId == "" {
+		return false
+	}
+	var id = ""
+	gdb.Table("users").Where("id = ?", userId).Pluck("id", &id)
+	return id != ""
+}
+func getYiyanLike(yiyanId int) int {
+	var likes int64
+	gdb.Table("like_record").Where("yiyan_id = ?", yiyanId).Count(&likes)
+	return int(likes)
+}
+func isMyYiyanToLike(yiyanId int, userId string) bool {
+	var submitter string
+	gdb.Table("yiyan").Select("submitter").Where("id = ?", yiyanId).Pluck("submitter", &submitter)
+	return submitter == userId
+}
+func getIsLike(yiyanId int, userId string) bool {
+	if userId == "" {
+		return false
+	}
+	var record []*LikeRecord
+	gdb.Table("like_record").Find(&record)
+	for _, recordItem := range record {
+		if recordItem.YiyanId == yiyanId && recordItem.UserId == userId {
+			return true
+		}
+	}
+	return false
+}
+func getRandomOne(c *gin.Context) {
+	stuId, errId := c.Cookie("id")
+	if errId != nil {
+		stuId = ""
+	}
+	var yiyanResult *YiyanResult
+	gdb.Table("yiyan").Order("RAND()").First(&yiyanResult)
+	yiyanResult.IsLiked = getIsLike(yiyanResult.Id, stuId)
+	yiyanResult.Likes = getYiyanLike(yiyanResult.Id)
+	c.JSON(200, yiyanResult)
+}
+func getYiyanMost() *YiyanResult {
+	var yiyanId int
+	gdb.Table("like_record").
+		Select("yiyan_id").
+		Group("yiyan_id").
+		Order("COUNT(*) DESC").
+		Limit(1).
+		Pluck("yiyan_id", &yiyanId)
+	if yiyanId == 0 {
+		yiyanId = 1
+	}
+	var yiyanResult *YiyanResult
+	gdb.Table("yiyan").Where("id = ?", yiyanId).First(&yiyanResult)
+	return yiyanResult
+}
+func getMost(c *gin.Context) {
+	stuId, errId := c.Cookie("id")
+	if errId != nil {
+		stuId = ""
+	}
+	yiyanGet := getYiyanMost()
+	yiyanGet.IsLiked = getIsLike(yiyanGet.Id, stuId)
+	yiyanGet.Likes = getYiyanLike(yiyanGet.Id)
+	c.JSON(200, yiyanGet)
+}
+func getAll(c *gin.Context) {
+	stuId, errId := c.Cookie("id")
+	if errId != nil {
+		stuId = ""
+	}
+	var yiyanAll []*YiyanResult
+	gdb.Table("yiyan").Find(&yiyanAll)
+	for _, yiyan := range yiyanAll {
+		yiyan.IsLiked = getIsLike(yiyan.Id, stuId)
+		yiyan.Likes = getYiyanLike(yiyan.Id)
+	}
+	c.JSON(200, yiyanAll)
+}
+func getMy(c *gin.Context) {
 	stuId, errId := c.Cookie("id")
 	_, errUsername := c.Cookie("username")
 	_, errPassword := c.Cookie("password")
-	if errId != nil || errUsername != nil || errPassword != nil {
+	if errId != nil || errUsername != nil || errPassword != nil || !isValidUserId(stuId) {
 		c.SetCookie("id", "", -1, "/", "", false, true)
 		c.SetCookie("username", "", -1, "/", "", false, true)
 		c.SetCookie("password", "", -1, "/", "", false, true)
 		c.Redirect(302, "/login")
-		c.Abort()
 		return
 	}
-	c.Set("stuId", stuId)
-	c.Next()
+	var result []*YiyanResult
+	gdb.Table("yiyan").Where("submitter = ?", stuId).Find(&result)
+	for _, resultItem := range result {
+		resultItem.IsLiked = getIsLike(resultItem.Id, stuId)
+		resultItem.Likes = getYiyanLike(resultItem.Id)
+	}
+	c.JSON(200, result)
+}
+func like(c *gin.Context) {
+	stuId, errId := c.Cookie("id")
+	_, errUsername := c.Cookie("username")
+	_, errPassword := c.Cookie("password")
+	if errId != nil || errUsername != nil || errPassword != nil || !isValidUserId(stuId) {
+		c.SetCookie("id", "", -1, "/", "", false, true)
+		c.SetCookie("username", "", -1, "/", "", false, true)
+		c.SetCookie("password", "", -1, "/", "", false, true)
+		c.String(200, "nologin")
+		return
+	}
+	var lk map[string]interface{}
+	if err := c.ShouldBindJSON(&lk); err != nil {
+		c.String(200, "format error!")
+		return
+	}
+	if lk["is_liked"].(bool) {
+		gdb.Table("like_record").Unscoped().Where("user_id = ? AND yiyan_id = ?", stuId, int(lk["id"].(float64))).Delete(nil)
+	} else {
+		if isMyYiyanToLike(int(lk["id"].(float64)), stuId) {
+			c.String(200, "my")
+			return
+		}
+		gdb.Table("like_record").Create(&LikeRecord{YiyanId: int(lk["id"].(float64)), UserId: stuId})
+	}
+	c.String(200, "ok")
+}
+func submit(c *gin.Context) {
+	stuId, errId := c.Cookie("id")
+	_, errUsername := c.Cookie("username")
+	_, errPassword := c.Cookie("password")
+	if errId != nil || errUsername != nil || errPassword != nil || !isValidUserId(stuId) {
+		c.SetCookie("id", "", -1, "/", "", false, true)
+		c.SetCookie("username", "", -1, "/", "", false, true)
+		c.SetCookie("password", "", -1, "/", "", false, true)
+		c.Redirect(302, "/login")
+		return
+	}
+	content := c.PostForm("content")
+	source := c.PostForm("source")
+	author := c.PostForm("author")
+	classifiers := c.PostForm("classifiers")
+	fmt.Println(content, source, author, classifiers)
+	if content == "" || source == "" || author == "" || classifiers == "" {
+		c.Redirect(302, "/submit")
+		return
+	}
+	gdb.Table("yiyan").Create(&Yiyan{
+		Content:     content,
+		Source:      source,
+		Author:      author,
+		Classifiers: classifiers,
+		Submitter:   stuId,
+	})
+	if gdb.Error != nil {
+		c.Redirect(302, "/submit")
+		return
+	}
+	c.Redirect(302, "/list")
+}
+func login(c *gin.Context) {
+	stuId := c.PostForm("student_id")
+	password := c.PostForm("password")
+	stuIdC, errId := c.Cookie("id")
+	usernameC, errUsername := c.Cookie("username")
+	_, errPassword := c.Cookie("password")
+	if errId != nil || errUsername != nil || errPassword != nil || !isValidUserId(stuId) {
+		var user User
+		gdb.Where("id = ? AND password = ?", stuId, password).First(&user)
+		if user.Username == "" || user.Password == "" || user.Id == "" || !isValidUserId(user.Id) {
+			c.Redirect(302, "/login")
+			return
+		}
+		c.SetCookie("id", user.Id, 21600, "/", "", false, true)
+		c.SetCookie("username", user.Username, 21600, "/", "", false, true)
+		c.SetCookie("password", user.Password, 21600, "/", "", false, true)
+		c.Redirect(302, "/")
+	} else if stuId == stuIdC {
+		gdb.Table("users").Where("id = ? AND username = ?", stuIdC, usernameC).Update("password", password)
+		c.SetCookie("id", stuIdC, 21600, "/", "", false, true)
+		c.SetCookie("username", usernameC, 21600, "/", "", false, true)
+		c.SetCookie("password", password, 21600, "/", "", false, true)
+		c.Redirect(302, "/")
+	} else {
+		var user User
+		gdb.Where("id = ? AND password = ?", stuId, password).First(&user)
+		if user.Username == "" || user.Password == "" || user.Id == "" {
+			c.Redirect(302, "/login")
+			return
+		}
+		c.SetCookie("id", user.Id, 21600, "/", "", false, true)
+		c.SetCookie("username", user.Username, 21600, "/", "", false, true)
+		c.SetCookie("password", user.Password, 21600, "/", "", false, true)
+		c.Redirect(302, "/")
+	}
 }
 
+var gdb *gorm.DB
+
+// 操控数据库、操控网页Cookie、Session存储用户信息等。
 func main() {
-	// 初始化Gin
 	g := gin.Default()
 	fmt.Println("已创建Gin~")
-	// 连接MySQL
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?charset=utf8mb4&parseTime=True&loc=Local", mysqlUsername, mysqlPassword, IP, mysqlDatabase)
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	if err != nil {
-		panic(err)
+	dsn := mysqlUsername + ":" + mysqlPassword + "@tcp(127.0.0.1:3306)/" + mysqlDatabase + "?charset=utf8mb4&parseTime=True&loc=Local"
+	db, errMySQL := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if errMySQL != nil {
+		panic(errMySQL)
 	}
 	gdb = db
 	fmt.Println("已连接MySQL~")
-	// 设置模板和静态资源
 	g.Delims("[[", "]]")
 	g.LoadHTMLGlob("templates/*")
 	g.Static("/static", "./static")
-	// 设置路由
 	g.GET("/", func(c *gin.Context) {
 		c.HTML(200, "index.html", nil)
 	})
 	g.GET("/list", func(c *gin.Context) {
 		c.HTML(200, "list.html", nil)
 	})
-	g.GET("/submit", checkLogin, func(c *gin.Context) {
-		c.HTML(200, "submit.html", nil)
+	g.GET("/submit", func(c *gin.Context) {
+		stuId, errStuId := c.Cookie("id")
+		_, errUsername := c.Cookie("username")
+		_, errPassword := c.Cookie("password")
+		if errStuId != nil || errUsername != nil || errPassword != nil || !isValidUserId(stuId) {
+			c.SetCookie("id", "", -1, "/", "", false, true)
+			c.SetCookie("username", "", -1, "/", "", false, true)
+			c.SetCookie("password", "", -1, "/", "", false, true)
+			c.Redirect(302, "/login")
+		} else {
+			c.HTML(200, "submit.html", nil)
+		}
 	})
-	g.GET("/my", checkLogin, func(c *gin.Context) {
-		c.HTML(200, "my.html", nil)
+	g.GET("/my", func(c *gin.Context) {
+		stuId, errStuId := c.Cookie("id")
+		_, errUsername := c.Cookie("username")
+		_, errPassword := c.Cookie("password")
+		if errStuId != nil || errUsername != nil || errPassword != nil || !isValidUserId(stuId) {
+			c.SetCookie("id", "", -1, "/", "", false, true)
+			c.SetCookie("username", "", -1, "/", "", false, true)
+			c.SetCookie("password", "", -1, "/", "", false, true)
+			c.Redirect(302, "/login")
+		} else {
+			c.HTML(200, "my.html", nil)
+		}
 	})
 	g.GET("/login", func(c *gin.Context) {
 		c.HTML(200, "login.html", nil)
@@ -119,66 +302,20 @@ func main() {
 		c.HTML(200, "privacy.html", nil)
 	})
 	fmt.Println("已加载HTML静态资源~")
-	// 设置API路由
-	api := g.Group("/yiyan")
+	yiyan := g.Group("/yiyan")
 	{
-		api.GET("/get_random_one", getRandomOne)
-		api.GET("/get_all", getAll)
-		api.GET("/get_my", checkLogin, getMy)
-		api.GET("get_most", getMost)
-		api.POST("/like", checkLogin, like)
-		api.POST("/submit", checkLogin, submit)
-		api.POST("/login", login)
+		yiyan.GET("/get_random_one", getRandomOne)
+		yiyan.GET("/get_all", getAll)
+		yiyan.GET("/get_my", getMy)
+		yiyan.GET("get_most", getMost)
+		yiyan.POST("/like", like)
+		yiyan.POST("/submit", submit)
+		yiyan.POST("/login", login)
 	}
 	fmt.Println("已创建动态链接~")
-	// 启动服务
-	if err := g.Run(":8080"); err != nil {
-		panic(err)
+	errGin := g.Run(":8080")
+	if errGin != nil {
+		panic(errGin)
 	}
 	fmt.Println("已结束web服务~")
 }
-
-// 判断是否是自己的作品
-func isMyYiyanToLike(yiyanId int, userId string) bool {
-	var submitter string
-	gdb.Model(&Yiyan{}).Select("submitter").Where("id = ?", yiyanId).Scan(&submitter)
-	return submitter == userId
-}
-
-// 获取是否点赞
-func getIsLike(yiyanId int, userId string) bool {
-	if userId == "" {
-		return false
-	}
-	var count int64
-	gdb.Model(&LikeRecord{}).Where("yiyan_id = ? AND user_id = ?", yiyanId, userId).Count(&count)
-	return count > 0
-}
-
-// 获取随机一言
-func getRandomOne(c *gin.Context) {
-	var yiyanResult YiyanResult
-	gdb.Model(&Yiyan{}).Order("RAND()").First(&yiyanResult)
-	stuId, _ := c.Cookie("id")
-	yiyanResult.IsLiked = getIsLike(yiyanResult.Id, stuId)
-	c.JSON(200, yiyanResult)
-}
-
-// 获取点赞最多的一言
-func getMost(c *gin.Context) {
-	var yiyanGet YiyanResult
-	gdb.Model(&Yiyan{}).Order("likes DESC").First(&yiyanGet)
-	stuId, _ := c.Cookie("id")
-	yiyanGet.IsLiked = getIsLike(yiyanGet.Id, stuId)
-	c.JSON(200, yiyanGet)
-}
-
-// 获取所有一言
-func getAll(c *gin.Context) {
-	var yiyanAll []YiyanResult
-	gdb.Model(&Yiyan{}).Find(&yiyanAll)
-	stuId, _ := c.Cookie("id")
-	for _, yiyan := range yiyanAll {
-		yiyan.IsLiked = getIsLike(yiyan.Id, stuId)
-	}
-	c.JSON(200, yiyanAll)
