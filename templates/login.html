@@ -1,10 +1,17 @@
+<!-- 声明HTML5文档类型，确保浏览器正确渲染 [[3]][[7]] -->
 <!DOCTYPE html>
+<!-- 设置页面语言为中文，增强可访问性和SEO优化 [[1]][[5]] -->
 <html lang="zh">
 <head>
+    <!-- 定义UTF-8字符编码，确保中文字符正确显示 [[2]][[4]][[9]] -->
     <meta charset="UTF-8">
+    <!-- 设置页面标题，显示在浏览器标签栏 -->
     <title>登录</title>
+    <!-- 链接外部样式表，实现样式与结构分离 [[1]][[10]] -->
     <link href="/static/css/styles.css" rel="stylesheet">
+    <!-- 内联CSS样式定义 -->
     <style>
+        /* 登录框绝对居中布局，使用毛玻璃效果 [[7]][[10]] */
         #hit {
             position: absolute;
             margin: auto;
@@ -19,25 +26,30 @@
             border-radius: 20px;
         }
 
+        /* 容器尺寸定义 */
         #all {
             width: 800px;
             height: 300px;
         }
 
+        /* 表单行高设置 */
         .all-tr {
             height: 100px;
         }
 
+        /* 表单单元格宽度 */
         .all-td {
             width: 300px;
         }
 
+        /* 标签样式：增大字体并加粗 [[5]][[6]] */
         .all-label {
             margin-left: 60px;
             font-size: 34px;
             font-weight: bold;
         }
 
+        /* 输入框样式：大尺寸圆角边框设计 */
         .all-input {
             width: 320px;
             height: 50px;
@@ -47,6 +59,7 @@
             border: 1px solid black;
         }
 
+        /* 提交按钮样式：渐变背景和交互效果 [[8]] */
         .all-submit {
             width: 400px;
             height: 60px;
@@ -58,6 +71,7 @@
             transition: all 0.2s;
         }
 
+        /* 按钮悬停效果：尺寸变化和颜色渐变 */
         .all-submit:hover {
             font-size: 30px;
             height: 55px;
@@ -65,13 +79,16 @@
             background-color: deepskyblue;
         }
 
+        /* 提交按钮居中对齐 */
         .submit-td {
             text-align: center;
         }
     </style>
 </head>
 <body>
+<!-- 主容器 -->
 <div id="box">
+    <!-- 导航栏结构 -->
     <div id="navbar">
         <a class="nav-button-style cursor-pointer" href="/privacy">活动规则</a>
         <a class="current-page" href="/login">点我登录</a>
@@ -80,29 +97,44 @@
         <a class="nav-button-style cursor-pointer" href="/my">我的提交</a>
         <a class="nav-button-style cursor-pointer" href="/">&nbsp;&nbsp;&nbsp;&nbsp;首页&nbsp;&nbsp;&nbsp;&nbsp;</a>
     </div>
+    <!-- 内容区域 -->
     <div id="content">
+        <!-- 登录表单：POST方式提交 [[6]][[10]] -->
         <form method="post" action="/yiyan/login">
             <div id="hit">
                 <table id="all">
+                    <!-- 学号输入行 -->
                     <tr class="all-tr">
-                        <td class="all-td"><label for="id" class="all-label">请输入学号：</label></td>
-                        <td class="all-td"><input id="id" class="all-input" name="student_id" type="text"
-                                                  placeholder="一般是10位数"></td>
+                        <td class="all-td">
+                            <label for="id" class="all-label">请输入学号：</label>
+                        </td>
+                        <td class="all-td">
+                            <input id="id" class="all-input" name="student_id" type="text" 
+                                   placeholder="一般是10位数">
+                        </td>
                     </tr>
+                    <!-- 密码输入行 -->
                     <tr class="all-tr">
-                        <td class="all-td"><label for="password" class="all-label">请输入密码：</label></td>
-                        <td class="all-td"><input id="password" class="all-input" name="password" type="password"
-                                                  placeholder="请自行输入你的密码"></td>
+                        <td class="all-td">
+                            <label for="password" class="all-label">请输入密码：</label>
+                        </td>
+                        <td class="all-td">
+                            <input id="password" class="all-input" name="password" type="password" 
+                                   placeholder="请自行输入你的密码">
+                        </td>
                     </tr>
+                    <!-- 提交按钮行 -->
                     <tr>
-                        <td colspan="2" class="all-td submit-td"><input type="submit" class="all-submit cursor-pointer"
-                                                                        value="登录"></td>
+                        <td colspan="2" class="all-td submit-td">
+                            <input type="submit" class="all-submit cursor-pointer" value="登录">
+                        </td>
                     </tr>
                 </table>
             </div>
         </form>
     </div>
 </div>
+<!-- 引入自定义鼠标效果脚本 -->
 <script src="/static/js/mouse.js"></script>
 </body>
 </html>
