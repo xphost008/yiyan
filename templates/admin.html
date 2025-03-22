@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>提交一言</title>
+    <link href="/static/css/styles.css" rel="stylesheet">
+    <style>
+        #content {
+            overflow-y: auto;
+            display: flex;
+            align-items: center;
+            flex-direction: column;
+        }
+        #hit-addUser,
+        #hit-deleteYiyan,
+        #hit-deleteUser,
+        #hit-viewStuId{
+            width: 800px;
+            height: 270px;
+            margin-top: 40px;
+            backdrop-filter: blur(10px);
+            background-color: rgba(0, 0, 0, 0.6);
+            border-radius: 20px;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        #hit-deleteYiyan {
+            height: 200px;
+        }
+        #hit-deleteUser {
+            height: 290px;
+        }
+        #hit-viewStuId {
+            text-align: center;
+        }
+        #hit-addUser:hover,
+        #hit-deleteUser:hover,
+        #hit-deleteYiyan:hover,
+        #hit-viewStuId:hover{
+            transform: scale(105%);
+        }
+        #table-addUser,
+        #table-deleteYiyan,
+        #table-deleteUser {
+            width: 800px;
+        }
+        #table-addUser tr,
+        #table-deleteYiyan tr,
+        #table-deleteUser tr {
+            height: 60px;
+        }
+        #table-addUser tr td,
+        #table-deleteYiyan tr td,
+        #table-deleteUser tr td {
+            width: 300px;
+        }
+        .all-label {
+            margin-left: 60px;
+            font-size: 34px;
+            font-weight: bold;
+        }
+        .all-input {
+            width: 320px;
+            height: 50px;
+            padding: 0 10px;
+            font-size: 26px;
+            border-radius: 10px;
+            border: 1px solid black;
+        }
+        .all-submit,
+        .view-button{
+            width: 400px;
+            height: 60px;
+            border-radius: 50px;
+            font-size: 34px;
+            font-weight: bold;
+            border: 3px solid black;
+            background-color: skyblue;
+            transition: all 0.2s;
+        }
+        .all-submit:hover,
+        .view-button:hover{
+            font-size: 30px;
+            height: 55px;
+            width: 390px;
+            background-color: deepskyblue;
+        }
+        .config-title {
+            font-size: 34px;
+            font-weight: bold;
+        }
+        .view-input {
+            width: 600px;
+            height: 50px;
+            padding: 0 10px;
+            font-size: 26px;
+            border-radius: 10px;
+            border: 1px solid black;
+        }
+        .view-button {
+            width: 600px;
+        }
+        .view-button:hover {
+            width: 590px;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div id="box">
+        <div id="navbar">
+            <a class="nav-button-style cursor-pointer" href="/privacy">活动规则</a>
+            <a class="nav-button-style cursor-pointer" href="/login">点我登录</a>
+            <a class="nav-button-style cursor-pointer" href="/login">发表一言</a>
+            <a class="nav-button-style cursor-pointer" href="/list">一言列表</a>
+            <a class="nav-button-style cursor-pointer" href="/my">我的提交</a>
+            <a class="nav-button-style cursor-pointer" href="/">&nbsp;&nbsp;&nbsp;&nbsp;首页&nbsp;&nbsp;&nbsp;&nbsp;</a>
+        </div>
+        <div id="content">
+            <p class="config-title">私有管理员界面</p>
+            <div id="hit-addUser">
+                <form method="post" action="/yiyan/addUser">
+                    <table id="table-addUser">
+                        <tr>
+                            <td colspan="2" style="text-align: center">
+                                <p class="config-title">添加用户</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><label for="stuId" class="all-label">请输入用户学号：</label></td>
+                            <td>
+                                <input id="stuId" class="all-input" name="id" type="text" maxlength="11">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><label for="stuName" class="all-label">请输入用户姓名：</label></td>
+                            <td>
+                                <input id="stuName" class="all-input" name="name" type="text" maxlength="10">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" style="text-align: center;">
+                                <input type="submit" class="all-submit cursor-pointer" value="提交">
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+            <div id="hit-deleteYiyan">
+                <form method="post" action="/yiyan/deleteYiyan">
+                    <table id="table-deleteYiyan">
+                        <tr>
+                            <td colspan="2" style="text-align: center">
+                                <p class="config-title">删除一言</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><label for="yiyanId" class="all-label">请输入一言ID：</label></td>
+                            <td>
+                                <input id="yiyanId" class="all-input" name="id" type="text" maxlength="11">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" style="text-align: center;">
+                                <input type="submit" class="all-submit cursor-pointer" value="删除">
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+            <div id="hit-deleteUser">
+                <form method="post" action="/yiyan/deleteUser">
+                    <table id="table-deleteUser">
+                        <tr>
+                            <td colspan="2" style="text-align: center">
+                                <p class="config-title">删除用户<br><span style="color: red">注意，该操作将删除该用户所有提交的一言以及所有点赞信息</span></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><label for="userId" class="all-label">请输入用户ID：</label></td>
+                            <td>
+                                <input id="userId" class="all-input" name="id" type="text" maxlength="11">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" style="text-align: center;">
+                                <input type="submit" class="all-submit cursor-pointer" value="删除">
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+            <div id="hit-viewStuId">
+                <p class="config-title"><label for="viewId">查阅提交者的学号与姓名</label></p>
+                <input id="viewId" class="view-input" placeholder="请输入一言的ID" v-model="viewStuIdInput">
+                <p class="config-title">结果显示【{{stuInfo}}】</p>
+                <input type="button" @click="viewStuId" value="查看" class="view-button cursor-pointer">
+            </div>
+        </div>
+    </div>
+</div>
+<script src="/static/js/mouse.js"></script>
+<script src="/static/js/vue3.js"></script>
+<script src="/static/js/axios.js"></script>
+<script>
+    const { createApp, ref } = Vue;
+    createApp({
+        setup() {
+            const viewStuIdInput = ref('')
+            const stuInfo = ref('')
+            function viewStuId() {
+                if (Number.isNaN(parseInt(viewStuIdInput.value)) || parseInt(viewStuIdInput.value) <= 0) {
+                    return
+                }
+                axios.post("/yiyan/getUserInfo", {id: viewStuIdInput.value}).then((res) => {
+                    if(res.data === "no") {
+                        stuInfo.value = "一言ID输入错误"
+                    }else if(typeof res.data === 'object'){
+                        let data = res.data
+                        stuInfo.value = data["id"] + ", " + data["username"]
+                    }else{
+                        console.log("未知错误发生~")
+                    }
+                }).catch(err => console.log(err.message))
+            }
+            return {viewStuId, viewStuIdInput, stuInfo}
+        }
+    }).mount("#app")
+</script>
+</body>
+</html>

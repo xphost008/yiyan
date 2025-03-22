@@ -16,7 +16,7 @@ CREATE DATABASE IF NOT EXISTS yiyandata CHARACTER SET utf8mb4 COLLATE utf8mb4_ge
 ```
 
 3. 创建好数据库后，使用`use yiyandata`进入到数据库内。
-4. 紧接着，再创建3个表。创建3个表的代码如下：
+4. 紧接着，再创建4个表。创建4个表的代码如下：
 
 ```sql
 create table yiyan
@@ -48,13 +48,16 @@ create table like_record
     constraint like_record_ibfk_2
         foreign key (yiyan_id) references yiyan (id)
 );
-
+create table admin(
+    id int not null comment '管理员id'
+    primary key,
+)
 create index yiyan_id
     on like_record (yiyan_id);
 
 ```
 
-5. 其中，第一个创建的表是存储用户的一言表，第二个创建的表是存储用户的表，第三个表是存储点赞的表。
+5. 其中，第一个创建的表是存储用户的一言表，第二个创建的表是存储用户的表，第三个表是存储点赞的表。第4个表是管理员表，用来存储所有管理员账号的id。
 6. 由于本网站使用`邀请制`，并没有提供`注册按钮`键。因此表设计得挺简单得。
 7. 使用`GoLand`导入本工程，然后自动下载`go.mod`下的内容。
 8. 之后你可以在本网站的隐私条款目录下，自行写你自己的内容。并且直接运行你的`main.go`即可。所有网站该有的功能均在你用浏览器访问`localhost:8080`即可看到，这里不再赘述。

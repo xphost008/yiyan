@@ -24,11 +24,11 @@
             height: 600px;
         }
 
-        .all-tr {
+        #all tr {
             height: 100px;
         }
 
-        .all-td {
+        #all td {
             width: 300px;
         }
 
@@ -65,10 +65,6 @@
             background-color: deepskyblue;
         }
 
-        .submit-td {
-            text-align: center;
-        }
-
         .textarea-input {
             width: 320px;
             height: 150px;
@@ -94,30 +90,30 @@
         <form method="post" action="/yiyan/submit">
             <div id="hit">
                 <table id="all">
-                    <tr class="all-tr">
-                        <td class="all-td"><label for="t-content" class="all-label">请输入一言内容：</label></td>
-                        <td class="all-td">
+                    <tr>
+                        <td><label for="t-content" class="all-label">请输入一言内容：</label></td>
+                        <td>
                             <textarea id="t-content" class="textarea-input" name="content"
                                       placeholder="填写内容，要求40字以内" maxlength="40"></textarea>
                         </td>
                     </tr>
-                    <tr class="all-tr">
-                        <td class="all-td"><label for="source" class="all-label">请输入来源：</label></td>
-                        <td class="all-td">
+                    <tr>
+                        <td><label for="source" class="all-label">请输入来源：</label></td>
+                        <td>
                             <input id="source" class="all-input" name="source" type="text"
                                    placeholder="出处是哪本书或影片" maxlength="10">
                         </td>
                     </tr>
-                    <tr class="all-tr">
-                        <td class="all-td"><label for="author" class="all-label">请输入作者：</label></td>
-                        <td class="all-td">
+                    <tr>
+                        <td><label for="author" class="all-label">请输入作者：</label></td>
+                        <td>
                             <input id="author" class="all-input" name="author" type="text" placeholder="作者是谁"
                                    maxlength="10">
                         </td>
                     </tr>
-                    <tr class="all-tr">
-                        <td class="all-td"><label for="classifiers" class="all-label">请输入分类：</label></td>
-                        <td class="all-td"><select id="classifiers" name="classifiers" class="all-input">
+                    <tr>
+                        <td><label for="classifiers" class="all-label">请输入分类：</label></td>
+                        <td><select id="classifiers" name="classifiers" class="all-input">
                             <option value="anime">Anime - 动画</option>
                             <option value="comic">Comic - 漫画</option>
                             <option value="game">Game - 游戏</option>
@@ -133,7 +129,7 @@
                         </select></td>
                     </tr>
                     <tr>
-                        <td colspan="2" class="all-td submit-td">
+                        <td colspan="2" style="text-align: center;">
                             <input type="submit" class="all-submit cursor-pointer" value="提交">
                         </td>
                     </tr>

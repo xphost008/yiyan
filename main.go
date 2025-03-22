@@ -5,12 +5,16 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"strconv"
 )
 
-const mysqlUsername = "root"
-const mysqlPassword = "66543986"
-const mysqlDatabase = "yiyandata"
-const IP = "127.0.0.1"
+const (
+	mysqlUsername = "root"
+	mysqlPassword = "66543986"
+	mysqlDatabase = "yiyandata"
+	IP            = "127.0.0.1"
+	Port          = "3306"
+)
 
 type User struct {
 	Id       string `json:"id"`
@@ -166,10 +170,15 @@ func like(c *gin.Context) {
 		c.String(200, "format error!")
 		return
 	}
+	yId := int(lk["id"].(float64))
+	if yId == 0 {
+		c.String(200, "id is 0")
+		return
+	}
 	if lk["is_liked"].(bool) {
-		gdb.Table("like_record").Unscoped().Where("user_id = ? AND yiyan_id = ?", stuId, int(lk["id"].(float64))).Delete(nil)
+		gdb.Table("like_record").Unscoped().Where("user_id = ? AND yiyan_id = ?", stuId, yId).Delete(nil)
 	} else {
-		if isMyYiyanToLike(int(lk["id"].(float64)), stuId) {
+		if isMyYiyanToLike(yId, stuId) {
 			c.String(200, "my")
 			return
 		}
@@ -246,6 +255,90 @@ func login(c *gin.Context) {
 		c.Redirect(302, "/")
 	}
 }
+func addUser(c *gin.Context) {
+	if !isAdmin(c) {
+		c.String(404, "404 page not found")
+		return
+	}
+	stuId := c.PostForm("id")
+	username := c.PostForm("name")
+	if stuId == "" || username == "" {
+		c.Redirect(302, "/admin")
+		return
+	}
+	gdb.Table("users").Create(&User{
+		Id:       stuId,
+		Username: username,
+		Password: stuId,
+	})
+	c.Redirect(302, "/admin")
+}
+func deleteUser(c *gin.Context) {
+	if !isAdmin(c) {
+		c.String(404, "404 page not found")
+		return
+	}
+	stuId := c.PostForm("id")
+	if stuId == "" {
+		c.Redirect(302, "/admin")
+	}
+	gdb.Table("like_record").Unscoped().Where("user_id = ?", stuId).Delete(nil)
+	gdb.Table("yiyan").Unscoped().Where("submitter = ?", stuId).Delete(nil)
+	gdb.Table("users").Unscoped().Where("id = ?", stuId).Delete(nil)
+	c.Redirect(302, "/admin")
+}
+func deleteYiyan(c *gin.Context) {
+	if !isAdmin(c) {
+		c.String(404, "404 page not found")
+		return
+	}
+	yiyanId := c.PostForm("id")
+	if yiyanId == "" {
+		c.Redirect(302, "/admin")
+	}
+	gdb.Table("yiyan").Unscoped().Where("id = ?", yiyanId).Delete(nil)
+	c.Redirect(302, "/admin")
+}
+func getUserInfo(c *gin.Context) {
+	if !isAdmin(c) {
+		c.String(404, "404 page not found")
+		return
+	}
+	var lk map[string]interface{}
+	if err := c.ShouldBindJSON(&lk); err != nil {
+		c.String(200, "format error!")
+		return
+	}
+	yId, _ := strconv.Atoi(lk["id"].(string))
+	var userId string
+	var user User
+	gdb.Table("yiyan").Select("submitter").Where("id = ?", yId).Pluck("submitter", &userId)
+	gdb.Table("users").Where("id = ?", userId).First(&user)
+	if user.Id == "" || user.Username == "" || user.Password == "" {
+		c.String(200, "no")
+	} else {
+		c.JSON(200, user)
+	}
+}
+func isAdmin(c *gin.Context) bool {
+	stuId, errId := c.Cookie("id")
+	username, errUsername := c.Cookie("username")
+	password, errPassword := c.Cookie("password")
+	if errId != nil || errUsername != nil || errPassword != nil {
+		return false
+	}
+	var user *User
+	gdb.Where("id = ? AND username = ? AND password = ?", stuId, username, password).First(&user)
+	if user.Username == "" || user.Password == "" || user.Id == "" || !isValidUserId(user.Id) {
+		return false
+	}
+	var realId string
+	gdb.Table("admin").Select("id").Where("id = ?", stuId).Pluck("id", &realId)
+	if stuId == realId {
+		return true
+	}
+	return false
+}
 
 var gdb *gorm.DB
 
@@ -253,7 +346,7 @@ var gdb *gorm.DB
 func main() {
 	g := gin.Default()
 	fmt.Println("已创建Gin~")
-	dsn := mysqlUsername + ":" + mysqlPassword + "@tcp(127.0.0.1:3306)/" + mysqlDatabase + "?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := mysqlUsername + ":" + mysqlPassword + "@tcp(" + IP + ":" + Port + ")/" + mysqlDatabase + "?charset=utf8mb4&parseTime=True&loc=Local"
 	db, errMySQL := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if errMySQL != nil {
 		panic(errMySQL)
@@ -301,6 +394,13 @@ func main() {
 	g.GET("/privacy", func(c *gin.Context) {
 		c.HTML(200, "privacy.html", nil)
 	})
+	g.GET("/admin", func(c *gin.Context) {
+		if isAdmin(c) {
+			c.HTML(200, "admin.html", nil)
+		} else {
+			c.String(404, "404 page not found")
+		}
+	})
 	fmt.Println("已加载HTML静态资源~")
 	yiyan := g.Group("/yiyan")
 	{
@@ -311,6 +411,10 @@ func main() {
 		yiyan.POST("/like", like)
 		yiyan.POST("/submit", submit)
 		yiyan.POST("/login", login)
+		yiyan.POST("/addUser", addUser)
+		yiyan.POST("/deleteUser", deleteUser)
+		yiyan.POST("/deleteYiyan", deleteYiyan)
+		yiyan.POST("/getUserInfo", getUserInfo)
 	}
 	fmt.Println("已创建动态链接~")
 	errGin := g.Run(":8080")
