@@ -213,11 +213,11 @@
             }
             function up() {
                 if(cur_page.value < 2) { return }
-                window.location.href = "/list?page=" + (--cur_page.value)
+                window.location.href = "/my?page=" + (--cur_page.value)
             }
             function down() {
                 if(cur_page.value > getMyPage()) { return }
-                window.location.href = "/list?page=" + (++cur_page.value)
+                window.location.href = "/my?page=" + (++cur_page.value)
             }
             return {lists, choose, like_my, up, down, cur_page}
         }
