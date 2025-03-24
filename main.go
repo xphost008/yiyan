@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"math"
 	"strconv"
 )
 
@@ -123,12 +124,20 @@ func getMost(c *gin.Context) {
 	c.JSON(200, yiyanGet)
 }
 func getAll(c *gin.Context) {
+	page := c.DefaultQuery("page", "1")
+	var pageInt int
+	if TempPage, err := strconv.Atoi(page); err == nil && (TempPage > 0) {
+		pageInt = TempPage
+	} else {
+		pageInt = 1
+	}
+	offset := (pageInt - 1) * 10
 	stuId, errId := c.Cookie("id")
 	if errId != nil {
 		stuId = ""
 	}
 	var yiyanAll []*YiyanResult
-	gdb.Table("yiyan").Find(&yiyanAll)
+	gdb.Table("yiyan").Order("id ASC").Offset(offset).Limit(10).Find(&yiyanAll)
 	for _, yiyan := range yiyanAll {
 		yiyan.IsLiked = getIsLike(yiyan.Id, stuId)
 		yiyan.Likes = getYiyanLike(yiyan.Id)
@@ -146,8 +155,16 @@ func getMy(c *gin.Context) {
 		c.Redirect(302, "/login")
 		return
 	}
+	page := c.DefaultQuery("page", "1")
+	var pageInt int
+	if TempPage, err := strconv.Atoi(page); err == nil && (TempPage > 0) {
+		pageInt = TempPage
+	} else {
+		pageInt = 1
+	}
+	offset := (pageInt - 1) * 10
 	var result []*YiyanResult
-	gdb.Table("yiyan").Where("submitter = ?", stuId).Find(&result)
+	gdb.Table("yiyan").Where("submitter = ?", stuId).Order("id ASC").Offset(offset).Limit(10).Find(&result)
 	for _, resultItem := range result {
 		resultItem.IsLiked = getIsLike(resultItem.Id, stuId)
 		resultItem.Likes = getYiyanLike(resultItem.Id)
@@ -162,7 +179,7 @@ func like(c *gin.Context) {
 		c.SetCookie("id", "", -1, "/", "", false, true)
 		c.SetCookie("username", "", -1, "/", "", false, true)
 		c.SetCookie("password", "", -1, "/", "", false, true)
-		c.String(200, "nologin")
+		c.String(200, "no")
 		return
 	}
 	var lk map[string]interface{}
@@ -320,6 +337,34 @@ func getUserInfo(c *gin.Context) {
 		c.JSON(200, user)
 	}
 }
+func getListPage(c *gin.Context) {
+	var plu int64
+	gdb.Table("yiyan").Count(&plu)
+	if plu == 0 {
+		c.String(200, "1")
+	} else {
+		c.String(200, "%d", int(math.Ceil(float64(plu)/10)))
+	}
+}
+func getMyPage(c *gin.Context) {
+	stuId, errId := c.Cookie("id")
+	_, errUsername := c.Cookie("username")
+	_, errPassword := c.Cookie("password")
+	if errId != nil || errUsername != nil || errPassword != nil || !isValidUserId(stuId) {
+		c.SetCookie("id", "", -1, "/", "", false, true)
+		c.SetCookie("username", "", -1, "/", "", false, true)
+		c.SetCookie("password", "", -1, "/", "", false, true)
+		c.Redirect(302, "/login")
+		return
+	}
+	var plu int64
+	gdb.Table("yiyan").Where("submitter = ?", stuId).Count(&plu)
+	if plu == 0 {
+		c.String(200, "1")
+	} else {
+		c.String(200, "%d", int(math.Ceil(float64(plu)/10)))
+	}
+}
 func isAdmin(c *gin.Context) bool {
 	stuId, errId := c.Cookie("id")
 	username, errUsername := c.Cookie("username")
@@ -407,7 +452,9 @@ func main() {
 		yiyan.GET("/get_random_one", getRandomOne)
 		yiyan.GET("/get_all", getAll)
 		yiyan.GET("/get_my", getMy)
-		yiyan.GET("get_most", getMost)
+		yiyan.GET("/get_most", getMost)
+		yiyan.GET("/get_list_page", getListPage)
+		yiyan.GET("/get_my_page", getMyPage)
 		yiyan.POST("/like", like)
 		yiyan.POST("/submit", submit)
 		yiyan.POST("/login", login)

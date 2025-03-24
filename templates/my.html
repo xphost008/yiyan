@@ -39,7 +39,7 @@
             transform: scale(105%); /* 放大效果 [[7]] */
         }
         .hit-item:last-child {
-            margin-bottom: 20px;
+            margin-bottom: 500px;
         }
 
         /* 标题样式 */
@@ -62,6 +62,33 @@
             margin-right: 30px;
             line-height: 40px;
         }
+        #page {
+            padding: 20px;
+            border: 0;
+            backdrop-filter: blur(4px);
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+            flex-shrink: 0;
+            margin-top: 40px;
+            margin-bottom: 400px;
+        }
+        #up, #down, #cur_page {
+            margin: 0 30px;
+            background-color: rgba(0, 0, 0, 0.6);
+            padding: 20px;
+            color: white;
+            border: 0;
+            border-radius: 5px;
+            font-size: 20px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        #cur_page {
+            cursor: default;
+        }
+        #up:hover, #down:hover {
+            transform: scale(110%);
+        }
     </style>
 </head>
 
@@ -74,8 +101,8 @@
             <a class="nav-button-style cursor-pointer" href="/privacy">活动规则</a>
             <a class="nav-button-style cursor-pointer" href="/login">点我登录</a>
             <a class="nav-button-style cursor-pointer" href="/submit">发表一言</a>
-            <a class="nav-button-style cursor-pointer" href="/list">一言列表</a>
-            <a class="current-page" href="/my">我的提交</a> <!-- 当前页面标识 -->
+            <a class="nav-button-style cursor-pointer" href="/list?page=1">一言列表</a>
+            <a class="current-page" href="/my?page=1">我的提交</a> <!-- 当前页面标识 -->
             <a class="nav-button-style cursor-pointer" href="/">&nbsp;&nbsp;&nbsp;&nbsp;首页&nbsp;&nbsp;&nbsp;&nbsp;</a>
         </div>
 
@@ -92,6 +119,9 @@
                     <p class="hit-like cursor-pointer" @click="like_my">♥ {{list.likes}}</p> <!-- 点赞数显示 -->
                 </div>
             </div>
+            <div id="page">
+                <button id="up" @click="up">&lt;</button><span id="cur_page">{{cur_page}}</span><button id="down" @click="down">&gt;</button>
+            </div>
         </div>
     </div>
 </div>
@@ -102,17 +132,18 @@
 
 <!-- 核心逻辑实现 -->
 <script>
-    const {createApp, reactive, onMounted} = Vue;
+    const {createApp, reactive, onMounted, ref} = Vue;
 
     createApp({
         setup() {
+            function getQueryString(name) {
+                let reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+                let r = window.location.search.substring(1).match(reg);
+                if (r != null) return decodeURIComponent(r[2]); return null;
+            }
             // 响应式数据声明（用户提交列表）
             const lists = reactive([]);
-
-            /**
-             * 获取用户提交数据
-             * 通过axios发起GET请求，填充响应式数组
-             */
+            const cur_page = ref(1)
             function choose(classifiers) {
                 switch(classifiers) {
                     case 'anime':
@@ -141,8 +172,13 @@
                         return '抖机灵'
                 }
             }
+
+            /**
+             * 获取用户提交数据
+             * 通过axios发起GET请求，填充响应式数组
+             */
             function get_my() {
-                axios.get("/yiyan/get_my")
+                axios.get(`/yiyan/get_my?page=${cur_page.value}`)
                     .then(res => {
                         const data = res.data;
                         data.forEach(item => {
@@ -162,9 +198,28 @@
                 alert("你不能为自己点赞")
             }
             // 生命周期钩子：组件挂载后获取数据 [[5]]
-            onMounted(() => get_my());
-
-            return {lists, choose, like_my}
+            onMounted(() => {
+                let gqs = parseInt(getQueryString("page"))
+                if(Number.isNaN(gqs) || gqs > getMyPage() + 1){
+                    gqs = 1
+                }
+                cur_page.value = gqs
+                get_my()
+            });
+            function getMyPage() {
+                let result = 1;
+                axios.get("/yiyan/get_my_page").then((res) => {result = parseInt(res.data)}).catch(() => {result = 1})
+                return result;
+            }
+            function up() {
+                if(cur_page.value < 2) { return }
+                window.location.href = "/list?page=" + (--cur_page.value)
+            }
+            function down() {
+                if(cur_page.value > getMyPage()) { return }
+                window.location.href = "/list?page=" + (++cur_page.value)
+            }
+            return {lists, choose, like_my, up, down, cur_page}
         }
     }).mount("#app");
 </script>
